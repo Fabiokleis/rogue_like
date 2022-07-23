@@ -1,14 +1,14 @@
 #![allow(dead_code)]
+use crate::player::Player;
 use std::char;
 use std::collections::HashMap;
 use std::fmt;
 use std::mem;
-use crate::player::Player;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Idxs {
-    pub col: usize, 
-    pub row: usize, 
+    pub col: usize,
+    pub row: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -48,14 +48,22 @@ pub struct Board {
 
 impl Board {
     /// create a new empty Board with width and height consts
-    pub fn new(width: usize, height: usize, player: Player) -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
         Board {
             width,
             height,
-            commands: HashMap::<String, Commands>::new(),
+            commands: HashMap::from([
+                (String::from("w"), Commands::W),
+                (String::from("a"), Commands::A),
+                (String::from("s"), Commands::S),
+                (String::from("d"), Commands::D),
+                (String::from("clear"), Commands::Clear),
+                (String::from("history"), Commands::History),
+                (String::from("reset"), Commands::Reset),
+            ]),
             history: Vec::<String>::new(),
             matrix: vec![vec!['.'; width]; height],
-            player,
+            player: Player::new('@', Idxs { col: width/2, row: height/2 }),
         }
     }
 
@@ -78,11 +86,11 @@ impl Board {
     /// replace the position of the player body at board matrix
     pub fn update_player(&mut self, dir: (i32, i32)) {
         let idx = self.player.pos();
-       let unknown_body = mem::replace(&mut self.matrix[idx.row][idx.col], self.player.body());
+        let unknown_body = mem::replace(&mut self.matrix[idx.row][idx.col], self.player.body());
 
         // replace last position of the player
-        let last_idx = Idxs { 
-            col: (idx.col as i32 - dir.0) as usize, 
+        let last_idx = Idxs {
+            col: (idx.col as i32 - dir.0) as usize,
             row: (idx.row as i32 - dir.1) as usize,
         };
         self.matrix[last_idx.row][last_idx.col] = unknown_body;
@@ -98,28 +106,28 @@ impl Board {
                     self.player.move_to(dir.0, dir.1);
                     self.update_player(dir);
                 }
-            },
-            Some(Commands::A) => { 
+            }
+            Some(Commands::A) => {
                 if self.player.pos().col > 0 {
                     let dir = (-1, 0);
-                    self.player.move_to(dir.0, dir.1); 
+                    self.player.move_to(dir.0, dir.1);
                     self.update_player(dir);
                 }
-            },
-            Some(Commands::S) => { 
-                if self.player.pos().row < self.height-1 {
+            }
+            Some(Commands::S) => {
+                if self.player.pos().row < self.height - 1 {
                     let dir = (0, 1);
-                    self.player.move_to(dir.0, dir.1); 
+                    self.player.move_to(dir.0, dir.1);
                     self.update_player(dir);
                 }
-            },
-            Some(Commands::D) => { 
-                if self.player.pos().col < self.width-1 {
+            }
+            Some(Commands::D) => {
+                if self.player.pos().col < self.width - 1 {
                     let dir = (1, 0);
-                    self.player.move_to(dir.0, dir.1); 
+                    self.player.move_to(dir.0, dir.1);
                     self.update_player(dir);
                 }
-            },
+            }
             Some(Commands::History) => self.show_history(),
             Some(Commands::Clear) => self.clear_term(),
             _ => {}
@@ -140,20 +148,9 @@ impl Board {
 
     /// clear terminal stdout
     pub fn clear_term(&self) {
-        std::process::Command::new("clear").status().expect("cannot clear terminal!");
-    }
-
-    /// initialize every possible command
-    pub fn populate_commands(&mut self) {
-        self.commands = HashMap::from([
-            (String::from("w"), Commands::W),
-            (String::from("a"), Commands::A),
-            (String::from("s"), Commands::S),
-            (String::from("d"), Commands::D),
-            (String::from("clear"), Commands::Clear),
-            (String::from("history"), Commands::History),
-            (String::from("reset"), Commands::Reset),
-        ]);
+        std::process::Command::new("clear")
+            .status()
+            .expect("cannot clear terminal!");
     }
 
     /// set every cell of the matrix to empty char
